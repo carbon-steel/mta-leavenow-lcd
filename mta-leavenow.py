@@ -42,10 +42,12 @@ from nyct_gtfs import NYCTFeed
 import threading
 import datetime
 import time
-#import scrollphathd
+from lib.lcd import drivers
 
 # Specifiy your feed access key. See https://api.mta.info/#/AccessKey
-my_api_key = 'YOUR_API_KEY'
+my_api_key = ''
+if len(my_api_key) == 0:
+   raise Exception('You must fill out an API key!")
 
 # Which subway feed should be used for your stop?
 # List of feeds: https://api.mta.info/#/subwayRealTimeFeeds
@@ -56,10 +58,10 @@ my_feed_url = 'https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/nyct%2Fgtf
 #
 # Determine "GTFS Stop ID" and suffix direction.
 # For example 'R31N' for "Northbound Atlantic Av - Barclays Ctr"
-my_stop_id = 'R31N'
+my_stop_id = ['R31N', 'R31S']
 
 # How long does it take in minutes to walk to this station?
-my_walking_time = 3
+my_walking_time = 2
 
 # How long should we wait before refreshing MTA feed? MTA says feeds are
 # generated every 30 seconds, so anything less wouldn't make sense.
@@ -71,30 +73,37 @@ feed_refresh_delay = 65
 
 
 def ticker():
-    global ticker_text
-    current_text = None
+    global north_text
+    global south_text
+    current_north_text = None
+    current_south_text = None
+    prev = ""
+    updated = ""
+    current = ""
+
+    def write_screen():
+        display.lcd_clear()
+        display.lcd_display_string(current, 1)
+        display.lcd_display_string("Update: " + updated, 2)
+        display.lcd_display_string(north_text, 3)
+        display.lcd_display_string(south_text, 4)
 
     # Don't stop! Continously loop forever (or until you kill it!)
     while True:
-
+        current = time.strftime('%b %d %H:%M')
+        if current != prev:
+            prev = current
+            write_screen()
         # Determine if ticker text has changed since last update
-        if current_text != ticker_text:
-            current_text = ticker_text
+        if current_north_text != north_text or current_south_text != south_text:
+            updated = current
+            current_north_text = north_text
+            current_south_text = south_text
 
             # Update console (or log)
-            print ('{} mta-leavenow: {}'
-                .format(time.strftime('%b %d %H:%M:%S'), ticker_text) )
-                            
-            # Update buffer on Pimoroni Scroll HAT
-            #scrollphathd.clear()
-            #scrollphathd.set_brightness(0.1)
-            #scrollphathd.write_string('     ' + ticker_text)
-
+            # print(north_text, south_text)
+            write_screen()
         else:
-        
-            # Scroll buffer on Pimoroni Scroll HAT
-            #scrollphathd.show()
-            #scrollphathd.scroll()
             time.sleep(0.02)
 
 
@@ -115,26 +124,46 @@ def get_trains(action):
 
     # find trains those next stop is our stop
     # (i.e. we don't want those earlier down the track)
-    arrivals = []
+    arrivals_north = []
+    arrivals_south = []
     for train_num in range(len(trains)):
         stops = trains[train_num].stop_time_updates
         for stop in stops:
-            if stop.stop_id == my_stop_id:
+            if stop.stop_id == my_stop_id[0]:
 
                 # get arrival time (in minutes) and train number.
                 # Ignore trains arriving too soon
                 arrival_time = int((stop.arrival - datetime.datetime.now())
                     .total_seconds() / 60)
                 if arrival_time >= my_walking_time:
-                    arrivals.append([arrival_time, trains[train_num].route_id])
+                    arrivals_north.append([arrival_time, trains[train_num].route_id])
 
-    arrivals.sort()
-    return arrivals
+    for train_num in range(len(trains)):
+        stops = trains[train_num].stop_time_updates
+        for stop in stops:
+            if stop.stop_id == my_stop_id[1]:
+
+                # get arrival time (in minutes) and train number.
+                # Ignore trains arriving too soon
+                arrival_time = int((stop.arrival - datetime.datetime.now())
+                    .total_seconds() / 60)
+                if arrival_time >= my_walking_time:
+                    arrivals_south.append([arrival_time, trains[train_num].route_id])
+
+    arrivals_north.sort()
+    arrivals_south.sort()
+    return (arrivals_north, arrivals_south)
 
 
 def main():
-    global ticker_text
-    ticker_text = ('Getting train data...')
+    global north_text
+    global south_text
+    global display
+
+    display = drivers.Lcd()
+    display.lcd_clear()
+    north_text = ('Getting train data...')
+    south_text = ""
 
     # create seperate thread for ticker (tape)
     tape = threading.Thread(target=ticker)
@@ -142,21 +171,32 @@ def main():
     tape.start()
 
     # get train data and update ticker
-    trains = get_trains('new')
+    trains_north, trains_south = get_trains('new')
     while True:
     
         # build ticker accordingly; show first two arrivals if more than one train
         # array content: trains[arrival time in minutes][train number e.g. "D"]
-        if trains:
-            if len(trains) > 1:
-                ticker_text = ('({}) in {}\' then ({}) in {}\''
-                    .format(trains[0][1], trains[0][0],trains[1][1], trains[1][0]))
+        if trains_north:
+            if len(trains_north) > 1:
+                north_text = ('Nor ({}):{}\', ({}):{}\''
+                    .format(trains_north[0][1], trains_north[0][0],trains_north[1][1], trains_north[1][0]))
             else:
-                ticker_text = ('({}) in {}\''.format(trains[0][1], trains[0][0]))
+                north_text = ('Nor ({}) in {}\''.format(trains_north[0][1], trains_north[0][0]))
         else:
-            ticker_text = ('No train data.')
+            north_text = ('No Nor train data.')
+
+
+        if trains_south:
+            if len(trains_south) > 1:
+                south_text = ('Sou ({}):{}\', ({}):{}\''
+                    .format(trains_south[0][1], trains_south[0][0],trains_south[1][1], trains_south[1][0]))
+            else:
+                south_text = ('Sou ({}) in {}\''.format(trains_south[0][1], trains_south[0][0]))
+        else:
+            south_text = ('No Sou train data.')
+
 
         time.sleep(feed_refresh_delay)
-        trains = get_trains('refresh')
+        trains_north, trains_south = get_trains('refresh')
 
 if __name__ == '__main__': main()
