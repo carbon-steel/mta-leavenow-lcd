@@ -4,12 +4,15 @@ A python script that let’s you know when it’s time to leave home to make the
 The script has been completely re-written and now uses Andrew Dickinson's NYCT-GTFS library.
 
 # Output
-Output is the console but its intent is to output to some sort of display. I have it running on a Raspberry Pi Zero W with a [Scroll pHAT HD](https://shop.pimoroni.com/products/scroll-phat-hd). I've then mounted it on a wall next to the door so I can glance at it just before I leave the apartment.
-
-![](scrollphathd.gif)
+Output is the console but its intent is to output to some sort of display. I have it running on a Raspberry Pi 3 with an [LCD display](https://a.co/d/dgIWWPQ). I have it next to the door so I can glance at it just before I leave the apartment.
 
 Typical output:
-```The (D) train departs in 8 min then (N) train departs in 11 min.```
+```
+Mar 7 12:33
+Update: Mar 7 12:32
+Nor (N):4' (R):10'
+Sou (Q):6' (N):12'
+```
 
 # Prerequisites
 The following package(s) are needed:  Andrew Dickinson's [NYCT-GTFS] library (https://github.com/Andrew-Dickinson/nyct-gtfs). Depending on your system, you can install it with something like:
@@ -25,8 +28,10 @@ Finally you’ll need to know the feed URL and stop ID for the train and station
 
 With git installed, you can do the following to get it on your system. I personally prefer to put everything into ***/usr/local/src*** but sitting in your home directory will do.
 ```
-git clone https://github.com/rob718/mta-leavenow.git
+$ git clone --recurse-submodules https://github.com/carbon-steel/mta-leavenow-lcd.git
 ```
+The above command will include the lcd submodule to this project. It will be in the lib/lcd subdirectory of the project. Make sure to go to https://github.com/the-raspberry-pi-guy/lcd and follow the setup instructions there to setup the LCD driver in your raspberry pi.
+
 Once installed, you’ll need to edit the script to add things like an API key, feed IDs, and some other stuff.
 ```
 cd mta-leavenow
