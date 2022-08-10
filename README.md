@@ -58,7 +58,7 @@ If you’re looking to run the script on boot, the simplest way would be to put 
 However while testing it, I prefered to run it under screen, pressing ***CTRL-A***, then ***D*** to detach the current screen and logout. When I wanted to check progress, I simply entered ***screen -r*** to resume. For more information about screen, see: https://www.gnu.org/software/screen/manual/screen.html.
 ```
 screen
-cd mta-leavenow
+cd mta-leavenow-lcd
 python ./mta-leavenow.py
 ```
 Also check out https://www.raspberrypi-spy.co.uk/2015/10/how-to-autorun-a-python-script-on-boot-using-systemd/
