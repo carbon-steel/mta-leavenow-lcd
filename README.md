@@ -1,4 +1,4 @@
-# mta-leavenow
+# mta-leavenow-lcd
 A python script that let’s you know when it’s time to leave home to make the next subway train. The script reads the NYC MTA data feed to determine the next arrival train for a given station.
 
 The script has been completely re-written and now uses Andrew Dickinson's NYCT-GTFS library.
