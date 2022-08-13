@@ -47,7 +47,7 @@ from lib.lcd import drivers
 # Specifiy your feed access key. See https://api.mta.info/#/AccessKey
 my_api_key = ''
 if len(my_api_key) == 0:
-   raise Exception('You must fill out an API key!")
+   raise Exception('You must fill out an API key!')
 
 # Which subway feed should be used for your stop?
 # List of feeds: https://api.mta.info/#/subwayRealTimeFeeds
